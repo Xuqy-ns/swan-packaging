@@ -1733,48 +1733,59 @@
             card.classList.add('hidden');
           }
         });
-        applyFold(filter);
+        foldCount = FOLD_LIMIT;
+        applyFold();
       });
     }
     navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('active')));
 
     /* ===== Product Card Fold (View More / View Less) ===== */
     const FOLD_LIMIT = 12;
+    const FOLD_STEP = 8;
     const productsGrid = document.getElementById('productsGrid');
+    let foldCount = FOLD_LIMIT;
     const foldWrap = document.createElement('div');
     foldWrap.className = 'view-more-wrap';
     foldWrap.innerHTML = '<button class="view-more-btn"><span data-i18n="products.view_more">View More</span> <span class="vm-arrow">▾</span></button>';
     productsGrid.after(foldWrap);
     const foldBtn = foldWrap.querySelector('.view-more-btn');
 
-    function applyFold(filter) {
+    function applyFold() {
       const allCards = Array.from(productsGrid.querySelectorAll('.product-card'));
       const visibleCards = allCards.filter(c => !c.classList.contains('hidden'));
 
       if (visibleCards.length <= FOLD_LIMIT) {
         foldWrap.style.display = 'none';
         visibleCards.forEach(c => c.classList.remove('folded'));
-        foldBtn.classList.remove('expanded');
         return;
       }
 
-      foldWrap.style.display = '';
-      const isExpanded = foldBtn.classList.contains('expanded');
-
-      if (isExpanded) {
+      const total = visibleCards.length;
+      if (foldCount >= total) {
+        /* All shown → switch to "View Less" */
         visibleCards.forEach(c => c.classList.remove('folded'));
         foldBtn.querySelector('[data-i18n]').setAttribute('data-i18n', 'products.view_less');
       } else {
-        visibleCards.slice(FOLD_LIMIT).forEach(c => c.classList.add('folded'));
-        visibleCards.slice(0, FOLD_LIMIT).forEach(c => c.classList.remove('folded'));
+        visibleCards.slice(foldCount).forEach(c => c.classList.add('folded'));
+        visibleCards.slice(0, foldCount).forEach(c => c.classList.remove('folded'));
         foldBtn.querySelector('[data-i18n]').setAttribute('data-i18n', 'products.view_more');
       }
+
+      foldWrap.style.display = total > FOLD_LIMIT ? '' : 'none';
     }
 
     foldBtn.addEventListener('click', () => {
-      foldBtn.classList.toggle('expanded');
-      const activeBtn = document.querySelector('.product-filter-btn.active');
-      applyFold(activeBtn ? activeBtn.dataset.filter : 'all');
+      const allCards = Array.from(productsGrid.querySelectorAll('.product-card'));
+      const visibleCards = allCards.filter(c => !c.classList.contains('hidden'));
+      const total = visibleCards.length;
+
+      if (foldCount >= total) {
+        /* Reset to initial fold */
+        foldCount = FOLD_LIMIT;
+      } else {
+        foldCount = Math.min(foldCount + FOLD_STEP, total);
+      }
+      applyFold();
     });
 
     /* ===== Image Lightbox ===== */
@@ -1809,7 +1820,7 @@
 
     // Initialize language on load
     switchLang('en');
-    applyFold('all');
+    applyFold();
 
     /* ===== Privacy Consent: disable submit until checked ===== */
     const privacyCheck = document.getElementById('privacyConsent');
