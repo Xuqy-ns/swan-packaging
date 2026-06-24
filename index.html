@@ -458,6 +458,23 @@
     }
     .fade-up.visible { opacity: 1; transform: translateY(0); }
 
+    /* === View More Fold === */
+    .product-card.folded { display: none; }
+    .view-more-wrap { text-align: center; margin-top: 24px; }
+    .view-more-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 32px; border-radius: 50px;
+      border: 1.5px solid var(--accent); background: transparent;
+      color: var(--accent); font-size: 0.92rem; font-weight: 500;
+      cursor: pointer; transition: var(--transition);
+      font-family: inherit;
+    }
+    .view-more-btn:hover { background: var(--accent); color: #fff; }
+    .view-more-btn .vm-arrow {
+      display: inline-block; transition: transform 0.3s;
+    }
+    .view-more-btn.expanded .vm-arrow { transform: rotate(180deg); }
+
     /* === Responsive === */
     @media (max-width: 1024px) {
       .about-grid { grid-template-columns: 1fr; gap: 40px; }
@@ -1421,6 +1438,8 @@
         "products.cup_sleeve5": "牛皮纸杯套",
         "products.cup_sleeve6": "发财定制杯套",
         "products.cup_sleeve7": "品牌定制杯套",
+        "products.view_more": "查看更多",
+        "products.view_less": "收起",
 
         "specs.size": "尺寸",
         "specs.material": "材质",
@@ -1591,6 +1610,8 @@
         "products.cup_sleeve5": "Kraft Paper Cup Sleeve",
         "products.cup_sleeve6": "Lucky Custom Cup Sleeve",
         "products.cup_sleeve7": "Brand Custom Cup Sleeve",
+        "products.view_more": "View More",
+        "products.view_less": "View Less",
 
         "specs.size": "Size",
         "specs.material": "Material",
@@ -1712,9 +1733,49 @@
             card.classList.add('hidden');
           }
         });
+        applyFold(filter);
       });
     }
     navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('active')));
+
+    /* ===== Product Card Fold (View More / View Less) ===== */
+    const FOLD_LIMIT = 6;
+    const productsGrid = document.getElementById('productsGrid');
+    const foldWrap = document.createElement('div');
+    foldWrap.className = 'view-more-wrap';
+    foldWrap.innerHTML = '<button class="view-more-btn"><span data-i18n="products.view_more">View More</span> <span class="vm-arrow">▾</span></button>';
+    productsGrid.after(foldWrap);
+    const foldBtn = foldWrap.querySelector('.view-more-btn');
+
+    function applyFold(filter) {
+      const allCards = Array.from(productsGrid.querySelectorAll('.product-card'));
+      const visibleCards = allCards.filter(c => !c.classList.contains('hidden'));
+
+      if (visibleCards.length <= FOLD_LIMIT) {
+        foldWrap.style.display = 'none';
+        visibleCards.forEach(c => c.classList.remove('folded'));
+        foldBtn.classList.remove('expanded');
+        return;
+      }
+
+      foldWrap.style.display = '';
+      const isExpanded = foldBtn.classList.contains('expanded');
+
+      if (isExpanded) {
+        visibleCards.forEach(c => c.classList.remove('folded'));
+        foldBtn.querySelector('[data-i18n]').setAttribute('data-i18n', 'products.view_less');
+      } else {
+        visibleCards.slice(FOLD_LIMIT).forEach(c => c.classList.add('folded'));
+        visibleCards.slice(0, FOLD_LIMIT).forEach(c => c.classList.remove('folded'));
+        foldBtn.querySelector('[data-i18n]').setAttribute('data-i18n', 'products.view_more');
+      }
+    }
+
+    foldBtn.addEventListener('click', () => {
+      foldBtn.classList.toggle('expanded');
+      const activeBtn = document.querySelector('.product-filter-btn.active');
+      applyFold(activeBtn ? activeBtn.dataset.filter : 'all');
+    });
 
     /* ===== Image Lightbox ===== */
     const modal = document.getElementById('imageModal');
@@ -1748,6 +1809,7 @@
 
     // Initialize language on load
     switchLang('en');
+    applyFold('all');
 
     /* ===== Privacy Consent: disable submit until checked ===== */
     const privacyCheck = document.getElementById('privacyConsent');
